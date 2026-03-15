@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CAARYA Pharmacy Stock</title>
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="theme-color" content="#0b1220" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brandMark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 2c4.97 0 9 4.03 9 9 0 4.08-2.71 7.53-6.42 8.66-.34.1-.58.41-.58.76V22l-4-2.1V20.4c0-.35-.24-.66-.58-.76C5.71 18.53 3 15.08 3 11c0-4.97 4.03-9 9-9Z" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 7v8M8 11h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brandName" id="brandName">CAARYA Pharmacy</div>
+          <div class="brandSub" id="brandSub">Drug stock &amp; dispensing</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="navItem active" data-view="dashboard">
+          <span class="navIcon" aria-hidden="true">🏥</span>
+          Dashboard
+        </button>
+        <button class="navItem" data-view="inventory">
+          <span class="navIcon" aria-hidden="true">💊</span>
+          Batch Inventory
+        </button>
+        <button class="navItem" data-view="estimate">
+          <span class="navIcon" aria-hidden="true">🧮</span>
+          Drugs Estimate
+        </button>
+        <button class="navItem" data-view="skus">
+          <span class="navIcon" aria-hidden="true">📦</span>
+          Unique SKUs
+        </button>
+        <button class="navItem" data-view="transactions">
+          <span class="navIcon" aria-hidden="true">🧾</span>
+          Transactions
+        </button>
+        <button class="navItem" data-view="reports">
+          <span class="navIcon" aria-hidden="true">📤</span>
+          Import / Export
+        </button>
+
+        <div class="navDivider"></div>
+
+        <button class="navItem" data-view="settings">
+          <span class="navIcon" aria-hidden="true">⚙️</span>
+          Settings
+        </button>
+      </nav>
+
+      <div class="sidebarFooter">
+        <div class="pillStatus" id="dbStatus">
+          <span class="dot"></span>
+          <span>Local DB: connecting…</span>
+        </div>
+        <div class="hint">
+          <div class="hintTitle">Shortcuts</div>
+          <div class="hintRow">
+            <kbd>/</kbd>
+            <span>Search</span>
+          </div>
+          <div class="hintRow">
+            <kbd>N</kbd>
+            <span>New drug</span>
+          </div>
+          <div class="hintRow">
+            <kbd>I</kbd>
+            <span>Stock in</span>
+          </div>
+          <div class="hintRow">
+            <kbd>O</kbd>
+            <span>Stock out</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="searchWrap">
+          <div class="searchIcon" aria-hidden="true">⌕</div>
+          <input id="globalSearch" type="search" placeholder="Search brand, manufacturer, batch, supplier… (Press /)" autocomplete="off" />
+          <button class="ghost" id="clearSearch" title="Clear">✕</button>
+        </div>
+
+        <div class="topActions">
+          <button class="btn" id="btnNewDrug">
+            <span class="btnIcon" aria-hidden="true">＋</span>
+            Add Drug
+          </button>
+          <button class="btnSecondary" id="btnStockIn">
+            <span class="btnIcon" aria-hidden="true">⬆</span>
+            Stock In
+          </button>
+          <button class="btnDanger" id="btnStockOut">
+            <span class="btnIcon" aria-hidden="true">⬇</span>
+            Stock Out
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEWS -->
+      <section class="view active" id="view-dashboard">
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Today</div>
+                <div class="cardSub">Quick snapshot</div>
+              </div>
+              <div class="chip" id="todayDate"></div>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <div class="statLabel">Unique SKUs</div>
+                <div class="statValue" id="statDrugs">—</div>
+              </div>
+              <div class="stat">
+                <div class="statLabel">Total units in stock</div>
+                <div class="statValue" id="statUnits">—</div>
+              </div>
+              <div class="stat">
+                <div class="statLabel">Low stock items</div>
+                <div class="statValue warn" id="statLow">—</div>
+              </div>
+              <div class="stat">
+                <div class="statLabel">Expiring ≤ <span id="expDaysLabel">60</span> days</div>
+                <div class="statValue warn" id="statExpiring">—</div>
+              </div>
+            </div>
+            <div class="note">
+              Tip: keep <b>Min Stock</b> set so the app can alert before running out.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Alerts</div>
+                <div class="cardSub">Low stock &amp; expiry</div>
+              </div>
+              <div class="row gap8">
+                <label class="miniLabel">Expiring window</label>
+                <select id="expiringWindow" class="select">
+                  <option value="30">30 days</option>
+                  <option value="60" selected>60 days</option>
+                  <option value="90">90 days</option>
+                  <option value="180">180 days</option>
+                </select>
+              </div>
+            </div>
+            <div class="alerts">
+              <div class="alertBlock">
+                <div class="alertTitle">Low stock</div>
+                <div class="alertList" id="lowStockList"></div>
+              </div>
+              <div class="alertBlock">
+                <div class="alertTitle">Expiring soon</div>
+                <div class="alertList" id="expiringList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHead">
+            <div>
+              <div class="cardTitle">Recent transactions</div>
+              <div class="cardSub">Last 20 actions</div>
+            </div>
+            <button class="ghost" id="gotoTransactions">Open full history →</button>
+          </div>
+          <div class="tableWrap">
+            <table class="table noSticky" id="recentTxTable">
+              <thead>
+                <tr>
+                  <th>Date/Time</th>
+                  <th>Type</th>
+                  <th>Brand</th>
+                  <th>Batch</th>
+                  <th class="right">Qty</th>
+                  <th>Business date</th>
+                  <th>Business name</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-inventory">
+        <div class="card">
+          <div class="cardHead">
+            <div>
+              <div class="cardTitle">Batch Inventory</div>
+              <div class="cardSub">All brands &amp; batches</div>
+            </div>
+
+            <div class="row gap8 wrap">
+              <button class="chipBtn" data-filter="all">All</button>
+              <button class="chipBtn" data-filter="total_low">Total low stock</button>
+              <button class="chipBtn" data-filter="expiring">Expiring</button>
+              <button class="chipBtn" data-filter="expired">Expired</button>
+              <button class="chipBtn" data-filter="zero">Zero stock</button>
+
+              <label class="checkLabel">
+                <input type="checkbox" id="showZeroStock" />
+                Show zero-stock
+              </label>
+
+              <div class="spacer"></div>
+
+              <label class="miniLabel">Sort</label>
+              <select id="sortBy" class="select">
+                <option value="name">Brand name</option>
+                <option value="stock_desc" selected>Stock (high → low)</option>
+                <option value="stock_asc">Stock (low → high)</option>
+                <option value="expiry_asc">Expiry (soonest)</option>
+                <option value="expiry_desc">Expiry (latest)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table noSticky" id="invTable">
+              <thead>
+                <tr class="groupHead">
+                  <th colspan="5">SKU Identity</th>
+                  <th colspan="8">Batch Details</th>
+                </tr>
+                <tr>
+                  <th>Brand</th>
+                  <th>Manufacturer</th>
+                  <th>Active combined</th>
+                  <th>Packaging</th>
+                  <th class="right">Min stock</th>
+                  <th class="right">In stock</th>
+                  <th>Batch</th>
+                  <th>Expiry</th>
+                  <th class="right">MRP</th>
+                  <th class="right">Purchase price</th>
+                  <th>Purchase date</th>
+                  <th>Supplier</th>
+                  <th class="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="tableFooter">
+            <div class="muted" id="invCount">—</div>
+            <div class="muted">Data stored locally on this computer</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-estimate">
+        <div class="card">
+          <div class="cardHead row gap8 wrap">
+            <div>
+              <div class="cardTitle">Drugs Estimate</div>
+              <div class="cardSub">Select batches to estimate totals</div>
+            </div>
+            <input id="estimateSearch" class="input headSearch" placeholder="Search batches" />
+            <div class="spacer"></div>
+            <input id="estimateImportFile" type="file" accept=".csv" class="hidden" />
+            <button class="btnSecondary" id="estimateImportBtn">Import CSV</button>
+            <button class="btnSecondary" id="estimateClearAll">Clear All</button>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table noSticky estimateSource" id="estimateTable">
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th>Manufacturer</th>
+                  <th>Active combined</th>
+                  <th>Packaging</th>
+                  <th class="right">In stock</th>
+                  <th>Batch</th>
+                  <th>Expiry</th>
+                  <th class="right">MRP</th>
+                  <th class="right">Purchase price</th>
+                  <th class="right">Add</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="tableFooter">
+            <div class="muted" id="estimateCount">—</div>
+            <div class="muted">Showing up to 5 matches</div>
+          </div>
+
+          <div class="sectionDivider"></div>
+          <div class="sectionLabel">Estimate List</div>
+
+          <div class="tableWrap">
+            <table class="table noSticky" id="estimateListTable">
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th>Batch</th>
+                  <th>Expiry</th>
+                  <th class="right">MRP</th>
+                  <th class="right">Purchase price</th>
+                  <th class="right">Quantity</th>
+                  <th class="right">MRP total</th>
+                  <th class="right">Purchase total</th>
+                  <th class="right">Clear</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="tableFooter">
+            <div class="muted" id="estimateTotals">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-skus">
+        <div class="card">
+          <div class="cardHead row gap8 wrap">
+            <div>
+              <div class="cardTitle">Unique SKUs</div>
+              <div class="cardSub">SKU identity vs derived stock info</div>
+            </div>
+            <input id="skuSearch" class="input headSearch" placeholder="Search SKUs" />
+            <div class="spacer"></div>
+            <button class="chipBtn" data-sku-filter="all">All</button>
+            <button class="chipBtn" data-sku-filter="in">Current stock</button>
+            <button class="chipBtn" data-sku-filter="zero">Zero stock</button>
+            <button class="chipBtn" data-sku-filter="archived">Archived</button>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table skuTable" id="skuTable">
+              <thead>
+                <tr class="groupHead">
+                  <th colspan="5">SKU Identity</th>
+                  <th colspan="8">Derived</th>
+                </tr>
+                <tr class="columns">
+                  <th>Brand</th>
+                  <th>Manufacturer</th>
+                  <th>Active combined</th>
+                  <th>Packaging</th>
+                  <th class="right">Min stock</th>
+                  <th class="right">Total stock</th>
+                  <th class="right">Batch count</th>
+                  <th>Earliest expiry</th>
+                  <th class="right">Latest MRP</th>
+                  <th class="right">Latest PP</th>
+                  <th>Supplier (latest)</th>
+                  <th>Last stock in</th>
+                  <th class="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="tableFooter">
+            <div class="muted" id="skuCount">—</div>
+            <div class="muted">Data stored locally on this computer</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-transactions">
+        <div class="card">
+          <div class="cardHead">
+            <div>
+              <div class="cardTitle">Transactions</div>
+              <div class="cardSub">Stock in/out log</div>
+            </div>
+            <input id="txSearch" class="input headSearch" placeholder="Search transactions" />
+            <div class="row gap6 wrap txFilters">
+              <label class="miniLabel">Type</label>
+              <select id="txTypeFilter" class="select">
+                <option value="all" selected>All</option>
+                <option value="IN">Stock In</option>
+                <option value="OUT">Stock Out</option>
+                <option value="ADJUST">Adjust</option>
+              </select>
+              <label class="miniLabel">From</label>
+              <input type="date" id="txFrom" class="input" />
+              <label class="miniLabel">To</label>
+              <input type="date" id="txTo" class="input" />
+              <button class="btnSecondary" id="txApply">Apply</button>
+              <button class="ghost" id="txReset">Reset</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="txTable">
+              <thead>
+                <tr>
+                  <th>Date/Time</th>
+                  <th>Type</th>
+                  <th>Brand</th>
+                  <th>Batch</th>
+                  <th class="right">Qty</th>
+                  <th>Business date</th>
+                  <th>Business name</th>
+                  <th>Notes</th>
+                  <th>User</th>
+                  <th class="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-reports">
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Export</div>
+                <div class="cardSub">Backup to file (recommended)</div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <button class="btnSecondary" id="exportInventory">Export Batch Inventory CSV</button>
+              <button class="btnSecondary" id="exportEstimate">Export Drugs Estimate CSV</button>
+              <button class="btnSecondary" id="exportTransactions">Export Transactions CSV</button>
+              <button class="btnSecondary" id="exportSkus">Export SKUs CSV</button>
+              <button class="btn" id="exportBackupJson">Export Full Backup (JSON)</button>
+              <button class="btnAccent" id="exportBackupJsonNoMaster">Export Full Backup (No Master)</button>
+              <div class="note">
+                Save backups to Google Drive/USB so you don’t lose data if a computer crashes.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Import</div>
+                <div class="cardSub">Load inventory from CSV or JSON backup</div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <div class="row gap8 wrap">
+                <input type="file" id="importFile" class="input" accept=".csv,.json" />
+                <button class="btn" id="importBtn">Import</button>
+              </div>
+              <div class="row gap8 wrap">
+                <input type="file" id="skuImportFile" class="input" accept=".csv,.json" />
+                <button class="btnSecondary" id="skuImportBtn">Import SKUs</button>
+              </div>
+              <div class="row gap8 wrap">
+                <input type="file" id="masterFile" class="input fileHidden" accept=".json" />
+                <button class="btnSecondary" id="loadMasterBtn">Load Master List (JSON)</button>
+                <button class="btnSecondary" id="importMasterBtn">Import Master (File)</button>
+                <button class="btnSecondary" id="clearMasterBtn">Clear Master</button>
+              </div>
+              <div class="note">
+                CSV should have headers: <code>brand_name,manufacturer,packaging_raw,active_combined,batch,expiry,stock,min_stock,mrp,purchase_price,purchase_date,supplier</code><br/>
+                Expiry format: <code>YYYY-MM-DD</code> (or <code>YYYY-MM</code>)
+              </div>
+              <div class="note">
+                SKU CSV headers: <code>brand_name,manufacturer,active_combined,packaging_raw,min_stock</code>
+              </div>
+
+              <details class="details">
+                <summary>Show CSV template</summary>
+                <pre class="codeBlock">brand_name,manufacturer,packaging_raw,active_combined,batch,expiry,stock,min_stock,mrp,purchase_price,purchase_date,supplier
+Paracetamol 650,ABC Pharma,strip of 10 tablets,Paracetamol (650mg),BT001,2026-12-31,200,50,35,18,2026-01-10,ABC Pharma
+Pantoprazole 40,XYZ Distributors,strip of 10 tablets,Pantoprazole (40mg),BT002,2026-08-15,80,20,120,65,2026-01-12,XYZ Distributors</pre>
+              </details>
+
+              <div class="dangerZone">
+                <div class="dangerTitle">Danger zone</div>
+                <button class="btnDanger" id="wipeAll">Wipe ALL local data</button>
+                <div class="muted">This cannot be undone. Export a backup first.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Hospital profile</div>
+                <div class="cardSub">Displayed inside app</div>
+              </div>
+            </div>
+
+            <div class="formGrid">
+              <label class="field">
+                <span>Hospital / Unit name</span>
+                <input id="setHospital" class="input" placeholder="CAARYA Hospital" />
+              </label>
+              <label class="field">
+                <span>Default user (for logs)</span>
+                <input id="setUser" class="input" placeholder="Pharmacy" />
+              </label>
+              <label class="field">
+                <span>Expiring window default (days)</span>
+                <input id="setExpWindow" class="input" type="number" min="7" max="365" step="1" />
+              </label>
+            </div>
+
+            <div class="row gap8">
+              <button class="btn" id="saveSettings">Save</button>
+              <button class="ghost" id="seedDemo">Load demo data</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">About</div>
+                <div class="cardSub">Local-first pharmacy stock</div>
+              </div>
+            </div>
+            <div class="note">
+              This app runs entirely in your browser and syncs data with <b>Firebase</b> when configured.
+              If Firebase is not configured, it falls back to LocalStorage on this computer.
+            </div>
+            <div class="note">
+              Shared inventory mode: all staff see the same data after login.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div>
+                <div class="cardTitle">Staff Login</div>
+                <div class="cardSub">Email + password</div>
+              </div>
+            </div>
+            <div class="formGrid">
+              <label class="field">
+                <span>Email</span>
+                <input id="authEmail" class="input" type="email" placeholder="name@hospital.com" autocomplete="username" />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input id="authPassword" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
+              </label>
+            </div>
+            <div class="row gap8">
+              <button class="btn" id="authLogin">Sign in</button>
+              <button class="ghost" id="authSignup">Create account</button>
+              <button class="btnDanger" id="authLogout">Sign out</button>
+            </div>
+            <div class="note">
+              Status: <b id="authStatus">Checking…</b>
+              <span class="muted">•</span>
+              <span class="muted" id="authUser">—</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODAL -->
+      <div class="modalBackdrop hidden" id="modalBackdrop" role="dialog" aria-modal="true">
+        <div class="modal">
+          <div class="modalHead">
+            <div>
+              <div class="modalTitle" id="modalTitle">—</div>
+              <div class="modalSub" id="modalSub">—</div>
+            </div>
+            <button class="ghost" id="modalClose" title="Close">✕</button>
+          </div>
+          <form class="modalBody" id="modalForm"></form>
+          <div class="modalFoot">
+            <button class="ghost" id="modalCancel" type="button">Cancel</button>
+            <button class="btn" id="modalSave" type="submit" form="modalForm">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOASTS -->
+      <div class="toasts" id="toasts"></div>
+    </main>
+  </div>
+
+  <script>
+    // Paste your Firebase web config here from Firebase Console.
+    // If left as-is, the app will use LocalStorage.
+    window.CAARYA_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCEdU5T-92SVi2X7ADMOQCEjDZeVk_kiZw",
+      authDomain: "caarya-pharmacy-v7-fb.firebaseapp.com",
+      projectId: "caarya-pharmacy-v7-fb",
+      storageBucket: "caarya-pharmacy-v7-fb.firebasestorage.app",
+      messagingSenderId: "957933720179",
+      appId: "1:957933720179:web:957ba427150ce7d093d006",
+      measurementId: "G-KDKLZ8DLZL"
+    };
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    window.__firebase = {
+      initializeApp,
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      serverTimestamp,
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut
+    };
+  </script>
+  <script defer src="app.js"></script>
+</body>
+</html>
